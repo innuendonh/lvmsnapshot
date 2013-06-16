@@ -105,6 +105,10 @@ MAPPERINDEX=1
 # (make sure you set a value!)
 IDENTIFIER="-snapshot-lvmsnapshot"
 
+# Retry remove
+# Number of times lvremove should be retried if it fails
+RETRYREMOVE=20
+
 # Paths to needed commands
 LVDISPLAY=/sbin/lvdisplay
 LVCREATE=/sbin/lvcreate
@@ -523,12 +527,20 @@ elif [ $1 = "remove" ]; then
         cleanup
 
         outputne "Removing snapshot..."
-        $LVREMOVE -f $SNAPSHOTPATH > /dev/null 2>&1
+        i=0
+        result=-1
+        # try $RETRYREMOVE times with ascending delay
+        until [ \( $result -eq 0 \) -o \( $i -ge $RETRYREMOVE \) ]; do
+            sleep $i
+            i=`expr $i + 1`
+            $LVREMOVE -f $SNAPSHOTPATH > /dev/null 2>&1
+            result=$?
+        done
 
-        if [ $? -eq 0 ]; then
-            status_success "ok"
+        if [ $result -eq 0 ]; then
+            status_success "ok after $i tries"
         else
-            status_error "failed"
+            status_error "failed after $i tries"
             error "Error while removing snapshot, please remove manually."
         fi
     else
