@@ -432,7 +432,11 @@ if [ $1 = "create" ]; then
     fi
 
     outputne "Creating snapshot..."
-    $LVCREATE -L $SNAPSHOTSIZE -s -n $SNAPSHOTNAME $VOLUMEPATH > /dev/null 2>&1
+    if [ $SNAPSHOTSIZE = "thin" ]; then
+        $LVCREATE -s -n $SNAPSHOTNAME $VOLUMEPATH > /dev/null 2>&1
+    else
+        $LVCREATE -L $SNAPSHOTSIZE -s -n $SNAPSHOTNAME $VOLUMEPATH > /dev/null 2>&1
+    fi
 
     if [ $? -eq 0 ]; then
         status_success "ok"
